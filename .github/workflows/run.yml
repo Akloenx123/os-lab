@@ -1,0 +1,35 @@
+name: os-run
+on:
+  workflow_dispatch:
+    inputs:
+      repo:   {description: "owner/repo to check out", default: "NousResearch/hermes-agent"}
+      ref:    {description: "branch/tag/sha", default: "main"}
+      os:     {description: "windows-latest | macos-latest | ubuntu-latest | all", default: "all"}
+      setup:  {description: "setup command (bash)", default: "uv sync --python 3.11 --extra all --group dev"}
+      command: {description: "command to run (bash)", default: "uv run pytest -q -x tests/hermes_state"}
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    outputs: {matrix: "${{ steps.m.outputs.matrix }}"}
+    steps:
+      - id: m
+        run: |
+          if [ "${{ inputs.os }}" = all ]; then echo 'matrix=["windows-latest","macos-latest","ubuntu-latest"]' >> $GITHUB_OUTPUT
+          else echo "matrix=[\"${{ inputs.os }}\"]" >> $GITHUB_OUTPUT; fi
+  run:
+    needs: pick
+    strategy: {fail-fast: false, matrix: {os: "${{ fromJSON(needs.pick.outputs.matrix) }}"}}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults: {run: {shell: bash}}
+    steps:
+      - uses: actions/checkout@v4
+        with: {repository: "${{ inputs.repo }}", ref: "${{ inputs.ref }}", fetch-depth: 1}
+      - uses: astral-sh/setup-uv@v6
+      - name: setup
+        run: ${{ inputs.setup }}
+      - name: command
+        run: ${{ inputs.command }} 2>&1 | tee run.log; exit ${PIPESTATUS[0]}
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: {name: "log-${{ matrix.os }}", path: run.log, if-no-files-found: ignore}
