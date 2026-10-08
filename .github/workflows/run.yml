@@ -5,7 +5,7 @@ on:
       repo:   {description: "owner/repo to check out", default: "NousResearch/hermes-agent"}
       ref:    {description: "branch/tag/sha", default: "main"}
       os:     {description: "windows-latest | macos-latest | ubuntu-latest | all", default: "all"}
-      setup:  {description: "setup command (bash)", default: "uv sync --python 3.11 --extra all --group dev"}
+      setup:  {description: "setup command (bash)", default: "uv sync --python 3.14 --extra all --group dev"}
       command: {description: "command to run (bash)", default: "uv run pytest -q -x tests/hermes_state"}
 jobs:
   pick:
